@@ -1,11 +1,41 @@
 {
-  "name": "battle-node",
-  "version": "0.1.2",
-  "description": "Battle Eye Client for Node JS",
+  "name": "battle-node-v2",
+  "version": "2.0.0",
+  "description": "Modern Promise-based BattlEye RCON Client for Node.js",
   "main": "./lib/index.js",
-  "author": "Lulz0rz",
-  "license": "ISC",
+  "files": [
+    "lib",
+    "cli.js",
+    "LICENSE.txt",
+    "README.md"
+  ],
+  "bin": {
+    "battle-rcon": "./cli.js"
+  },
+  "scripts": {
+    "start": "node cli.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mazixs/battle-node-v2.git"
+  },
+  "keywords": [
+    "battleye",
+    "rcon",
+    "dayz",
+    "arma",
+    "game-server",
+    "udp",
+    "node",
+    "client"
+  ],
+  "author": "mazix <mazix@bk.ru>",
+  "license": "MIT",
   "dependencies": {
     "buffer-crc32": "^0.2.1"
+  },
+  "engines": {
+    "node": ">=14.0.0"
   }
 }

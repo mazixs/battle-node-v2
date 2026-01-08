@@ -1,0 +1,9 @@
+# NPM Ignore
+# Files that should not be included in the published package
+# (Even though "files" in package.json handles this, it's good practice)
+
+example.js
+PLAN.md
+bans.txt
+.gitignore
+.git/

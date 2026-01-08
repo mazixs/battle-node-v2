@@ -1,83 +1,124 @@
-# Battle Node
+# Battle Node v2
 
-Battle Node is a simple node.js Battle Eye Rcon Client.
+Battle Node v2 is a modern, Promise-based Node.js client for the BattlEye RCON protocol.
+It supports standard BattlEye commands for games like ARMA 2, ARMA 3, DayZ, and others using the BE RCON protocol.
 
-Battle Eye is an anti-cheat that runs on popular game-servers such as ARMA2, ARMA3 and Dayz Mod.
+## Features
 
-This library allows you to send and receive aynschronous commands to your game-server.
+*   **Modern API**: Fully Promise-based (Async/Await).
+*   **Reliable**: Handles UDP packet sequencing, multipart responses, and keep-alive automatically.
+*   **Typed Helpers**: Built-in methods for common commands like `kick`, `ban`, `say`, `getPlayers`, etc.
+*   **Flexible**: Can send any raw command supported by the server.
 
-[List of Commands](http://www.battleye.com/doc.html)
-
-#### How to Install
+## Installation
 
 ```bash
-npm install battle-node
+npm install battle-node-v2
 ```
 
-#### Example Code
+## Usage
+
+### Basic Example
 
 ```javascript
-var BattleNode = require('battle-node');
-var fs = require('fs');
+const BattleNode = require('battle-node-v2');
 
-var config = {
+const config = {
   ip: '127.0.0.1',
   port: 2302,
-  rconPassword: 'testing'
+  rconPassword: 'your_password',
+  timeout: 5000 // optional, default 5000ms
 };
 
-var bnode = new BattleNode(config);
+const client = new BattleNode(config);
 
-bnode.login();
+(async () => {
+  try {
+    // 1. Connect
+    await client.login();
+    console.log('Connected!');
 
-bnode.on('login', function(err, success) {
-  
-  if (err) { console.log('Unable to connect to server.'); }
+    // 2. Send Commands
+    const players = await client.getPlayers();
+    console.log('Players:', players);
 
-  if (success == true) {
-    console.log('Logged in RCON successfully.');
+    const bans = await client.getBans();
+    console.log('Bans:', bans.length);
+
+    // 3. Kick a player (ID 5)
+    // await client.kick(5, 'High Ping');
+
+    // 4. Send global message
+    await client.say('Hello everyone!');
+
+  } catch (err) {
+    console.error('RCON Error:', err.message);
+  } finally {
+    process.exit(0);
   }
-  else if (success == false) {
-    console.log('RCON login failed! (password may be incorrect)');
-  }
-            
-});
+})();
+```
 
-bnode.on('message', function(message) {
-  
-  console.log(message);
-  
-});
+### Events
 
-// send commands once connected
-setTimeout(function() {
+*   `loginResponse`: Emitted when login succeeds or fails internally.
+*   `message`: Emitted when the server sends a chat message or log (e.g., player joined, chat).
+*   `disconnected`: Emitted when the connection is closed.
+*   `error`: Emitted on socket errors.
 
-  bnode.sendCommand('version', function(version) {
-    console.log('Battle Eye Version ' + version);
-  });
-  
-  bnode.sendCommand('bans', function(bans) {
-    
-    fs.writeFile('bans.txt', bans, function (err) {
-      if (err) console.log(err);
-      
-      console.log('Saved bans to bans.txt');
-    });
-                            
-  });
-  
-  bnode.sendCommand('players', function(players) {
-    console.log(players);
-  });
-
-  
-  bnode.sendCommand('say -1 Hello World');
-  
-}, 1000);
-
-bnode.on('disconnected', function() {
-  
-  console.log('RCON server disconnected.');
-  
+```javascript
+client.on('message', (msg) => {
+    console.log('[SERVER]', msg);
 });
 ```
+
+## API Reference
+
+### `client.login()`
+Connects to the server and authenticates. Returns a `Promise<void>`.
+
+### `client.sendCommand(command)`
+Sends a raw command string to the server. Returns a `Promise<string>` with the response.
+Handles multipart packets automatically.
+
+### Helper Methods
+All helper methods return a `Promise<string>`.
+
+*   `getVersion()`
+*   `getPlayers()`
+*   `getBans()`
+*   `getAdmins()`
+*   `kick(playerId, [reason])`
+*   `ban(playerId, [minutes], [reason])`
+*   `addBan(identifier, [minutes], [reason])`
+*   `removeBan(banId)`
+*   `writeBans()`
+*   `loadBans()`
+*   `say(message, [playerId])` - playerId defaults to -1 (All)
+
+## CLI Tool
+
+This package includes a simple CLI for managing your server.
+
+```bash
+# Install globally to use the command
+npm install -g battle-node-v2
+
+# Usage
+battle-rcon <ip> <port> <password>
+
+# Example
+battle-rcon 127.0.0.1 2302 mysecretpassword
+```
+
+Or run directly from the source:
+
+```bash
+node cli.js <ip> <port> <password>
+```
+
+## Protocol Details
+This library implements the UDP-based BattlEye RCON protocol, including CRC32 checksums, packet sequencing, and multipacket reassembly.
+
+## License
+MIT

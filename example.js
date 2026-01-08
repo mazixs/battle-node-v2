@@ -1,60 +1,58 @@
-var BattleNode = require('./lib');
-var fs = require('fs');
+const BattleNode = require('./lib');
+const fs = require('fs');
 
-var config = {
+const config = {
   ip: '127.0.0.1',
-  port: 2302,
-  rconPassword: 'testing'
+  port: 2305,
+  rconPassword: 'your_password'
 };
 
-var bnode = new BattleNode(config);
+const bnode = new BattleNode(config);
 
-bnode.login();
-
-bnode.on('login', function(err, success) {
-  
-  if (err) { console.log('Unable to connect to server.'); }
-
-  if (success == true) {
-    console.log('Logged in RCON successfully.');
-  }
-  else if (success == false) {
-    console.log('RCON login failed! (password may be incorrect)');
-  }
-            
-});
-
-bnode.on('message', function(message) {
-  
-  console.log(message);
-  
-});
-
-// send commands once connected
-setTimeout(function() {
-
-  bnode.sendCommand('version', function(version) {
-    console.log('Battle Eye Version ' + version);
-  });
-  
-  bnode.sendCommand('bans', function(bans) {
-    
-    fs.writeFile('bans.txt', bans, function (err) {
-      if (err) console.log(err);
-      
-      console.log('Saved bans to bans.txt');
-    });
-                            
-  });
-  
-  bnode.sendCommand('players', function(players) {
-    console.log(players);
-  });
-
-}, 1000);
-
-bnode.on('disconnected', function() {
-  
+bnode.on('disconnected', () => {
   console.log('RCON server disconnected.');
-  
+  process.exit(0);
 });
+
+// Message listener for server messages (chat, etc.)
+bnode.on('message', (message) => {
+  console.log('Server Message:', message);
+});
+
+(async () => {
+  try {
+    console.log('Connecting...');
+    await bnode.login();
+    console.log('Logged in successfully!');
+
+    // Get Version
+    const version = await bnode.getVersion();
+    console.log('BattlEye Version:', version);
+
+    // Get Bans
+    const bans = await bnode.getBans();
+    // Note: We can now choose to save it or just print it. 
+    // The library no longer forces us to save files.
+    console.log('Bans received (length):', bans.length);
+    if (bans.length > 0) {
+        fs.writeFileSync('bans.txt', bans);
+        console.log('Saved bans to bans.txt');
+    }
+
+    // Get Players
+    const players = await bnode.getPlayers();
+    console.log('Players:');
+    console.log(players);
+
+    // Disconnect properly (by exiting, or we could add a logout method)
+    // For this example, we'll wait a bit then exit
+    setTimeout(() => {
+        console.log('Done.');
+        process.exit(0);
+    }, 2000);
+
+  } catch (err) {
+    console.error('Error:', err.message);
+    process.exit(1);
+  }
+})();
