@@ -117,6 +117,25 @@ Or run directly from the source:
 node cli.js <ip> <port> <password>
 ```
 
+### Available CLI Commands
+
+Once connected, you can use any standard BattlEye command. Common commands include:
+
+*   `players`: List all players on the server.
+*   `admins`: List all connected RCON admins.
+*   `bans`: List all bans.
+*   `version`: Show the BattlEye server version.
+*   `kick <ID> [Reason]`: Kick a player (e.g., `kick 5 AFK`).
+*   `ban <ID> [Minutes] [Reason]`: Ban a player (0 minutes = permanent).
+*   `addBan <GUID|IP> [Minutes] [Reason]`: Ban an offline player.
+*   `removeBan <BanID>`: Unban a player (ID from `bans` list).
+*   `say <ID> <Message>`: Send a chat message (`-1` for all players).
+*   `loadBans`: Reload bans from file.
+*   `writeBans`: Save bans to file.
+*   `#lock` / `#unlock`: Lock or unlock the server.
+*   `#shutdown`: Shutdown the server.
+*   `exit` / `quit`: Disconnect and close the CLI.
+
 ## Protocol Details
 This library implements the UDP-based BattlEye RCON protocol, including CRC32 checksums, packet sequencing, and multipacket reassembly.
 
