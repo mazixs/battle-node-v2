@@ -1,6 +1,6 @@
 {
   "name": "battle-node-v2",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "Modern Promise-based BattlEye RCON Client for Node.js",
   "type": "module",
   "main": "./dist/index.js",

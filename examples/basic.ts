@@ -32,7 +32,7 @@ async function main() {
         console.log('Players:', players);
 
         // Example: Send a command
-        await client.say('Hello from BattleNode v2!');
+        await client.say('Hello from BattleNode v2.1!');
 
         // Graceful disconnect
         client.disconnect();

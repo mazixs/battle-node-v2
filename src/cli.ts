@@ -40,7 +40,7 @@ const rl = readline.createInterface({
   prompt: 'RCON> '
 });
 
-console.log('--- DayZ BattlEye RCON CLI (v2 TypeScript Strict) ---');
+console.log('--- DayZ BattlEye RCON CLI (v2.1 TypeScript Strict) ---');
 
 // Handle Connection
 client.login()
