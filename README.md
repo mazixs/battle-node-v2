@@ -1,14 +1,16 @@
 # Battle Node v2
 
-Battle Node v2 is a modern, Promise-based Node.js client for the BattlEye RCON protocol.
-It supports standard BattlEye commands for games like ARMA 2, ARMA 3, DayZ, and others using the BE RCON protocol.
+Battle Node v2 is a modern, **TypeScript-based** Node.js client for the BattlEye RCON protocol.
+It supports standard BattlEye commands for games like ARMA 2, ARMA 3, DayZ, and others.
 
 ## Features
 
-*   **Modern API**: Fully Promise-based (Async/Await).
-*   **Reliable**: Handles UDP packet sequencing, multipart responses, and keep-alive automatically.
-*   **Typed Helpers**: Built-in methods for common commands like `kick`, `ban`, `say`, `getPlayers`, etc.
-*   **Flexible**: Can send any raw command supported by the server.
+*   **TypeScript**: Written in strict TypeScript (ES2023) with full type definitions.
+*   **Reliable UDP**: Automatic retries with exponential backoff, command queuing, and multipart packet reassembly.
+*   **Multi-Transport**: Supports **UDP** (standard) and **TCP** (proxy) transports.
+*   **Observability**: Built-in statistics (`getStats()`) and structured logging.
+*   **Robust Protocol**: Handles sequencing, CRC32 validation (Little-Endian), and keep-alive automatically.
+*   **Zero Dependencies**: Lightweight and efficient.
 
 ## Installation
 
@@ -16,128 +18,137 @@ It supports standard BattlEye commands for games like ARMA 2, ARMA 3, DayZ, and 
 npm install battle-node-v2
 ```
 
+**Note**: This package is purely **ESM**. You must use `import` syntax and have `"type": "module"` in your project's `package.json`.
+
 ## Usage
 
 ### Basic Example
 
-```javascript
-const BattleNode = require('battle-node-v2');
+```typescript
+import { BattleNode, BattleNodeConfig } from 'battle-node-v2';
 
-const config = {
+const config: BattleNodeConfig = {
   ip: '127.0.0.1',
   port: 2302,
-  rconPassword: 'your_password',
-  timeout: 5000 // optional, default 5000ms
+  rconPassword: 'your_password'
 };
 
 const client = new BattleNode(config);
 
-(async () => {
+try {
+  await client.login();
+  console.log('Logged in!');
+  
+  const players = await client.sendCommand('players');
+  console.log('Players:', players);
+  
+  // Use typed helper methods
+  const version = await client.getVersion();
+  console.log('Server Version:', version);
+
+} catch (error) {
+  console.error('RCON Error:', error);
+} finally {
+  client.disconnect();
+}
+```
+
+### Production Ready Example
+
+This example demonstrates retry logic, custom logging, and graceful shutdown.
+
+```typescript
+import { BattleNode, BattleNodeConfig } from 'battle-node-v2';
+
+const config: BattleNodeConfig = {
+  ip: '192.168.1.144',
+  port: 2302,
+  rconPassword: 'your_password',
+  
+  // Reliability Settings
+  timeout: 5000,          // Connection timeout
+  maxRetries: 3,         // Retry commands up to 3 times
+  retryDelay: 1000,      // Exponential backoff base delay
+  keepAliveInterval: 30000,
+  
+  // Custom Logging
+  logLevel: 'info',
+  logger: (level, msg, meta) => {
+     const timestamp = new Date().toISOString();
+     console.log(`[${timestamp}] [${level.toUpperCase()}] ${msg}`, meta || '');
+  }
+};
+
+const client = new BattleNode(config);
+
+client.on('message', (msg) => console.log('[SERVER]:', msg));
+client.on('disconnected', () => console.log('Disconnected from server'));
+
+async function main() {
   try {
-    // 1. Connect
     await client.login();
-    console.log('Connected!');
+    console.log('RCON Connected');
 
-    // 2. Send Commands
-    const players = await client.getPlayers();
-    console.log('Players:', players);
-
-    const bans = await client.getBans();
-    console.log('Bans:', bans.length);
-
-    // 3. Kick a player (ID 5)
-    // await client.kick(5, 'High Ping');
-
-    // 4. Send global message
-    await client.say('Hello everyone!');
+    // Stats Monitoring
+    setInterval(() => {
+        const stats = client.getStats();
+        console.log(`Latency: ${stats.averageLatency}ms | Lost: ${stats.packetsLost}`);
+    }, 60000);
 
   } catch (err) {
-    console.error('RCON Error:', err.message);
-  } finally {
-    process.exit(0);
+    console.error('Failed to connect:', err);
+    process.exit(1);
   }
-})();
-```
+}
 
-### Events
-
-*   `loginResponse`: Emitted when login succeeds or fails internally.
-*   `message`: Emitted when the server sends a chat message or log (e.g., player joined, chat).
-*   `disconnected`: Emitted when the connection is closed.
-*   `error`: Emitted on socket errors.
-
-```javascript
-client.on('message', (msg) => {
-    console.log('[SERVER]', msg);
+// Graceful Shutdown
+process.on('SIGINT', () => {
+    client.disconnect();
+    process.exit(0);
 });
+
+main();
 ```
 
-## API Reference
+## Configuration
 
-### `client.login()`
-Connects to the server and authenticates. Returns a `Promise<void>`.
+The `BattleNodeConfig` interface:
 
-### `client.sendCommand(command)`
-Sends a raw command string to the server. Returns a `Promise<string>` with the response.
-Handles multipart packets automatically.
-
-### Helper Methods
-All helper methods return a `Promise<string>`.
-
-*   `getVersion()`
-*   `getPlayers()`
-*   `getBans()`
-*   `getAdmins()`
-*   `kick(playerId, [reason])`
-*   `ban(playerId, [minutes], [reason])`
-*   `addBan(identifier, [minutes], [reason])`
-*   `removeBan(banId)`
-*   `writeBans()`
-*   `loadBans()`
-*   `say(message, [playerId])` - playerId defaults to -1 (All)
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `ip` | `string` | **Required** | Game server IP address |
+| `port` | `number` | **Required** | RCON port (often Game Port + 1) |
+| `rconPassword` | `string` | **Required** | BattlEye RCON password |
+| `transportType` | `'udp' \| 'tcp'` | `'udp'` | Use UDP for direct connection |
+| `timeout` | `number` | `5000` | Socket/Login timeout (ms) |
+| `maxRetries` | `number` | `3` | Max retries for failed commands |
+| `retryDelay` | `number` | `1000` | Base delay for retries (ms) |
+| `keepAliveInterval` | `number` | `15000` | Keep-alive packet interval (ms) |
+| `logLevel` | `'debug'\|'info'\|'warn'\|'error'` | `'info'` | Minimum log level |
+| `logger` | `function` | `undefined` | Custom logger callback |
 
 ## CLI Tool
 
-This package includes a simple CLI for managing your server.
+The package includes a built-in CLI for quick server management.
 
 ```bash
-# Install globally to use the command
+# Run directly with npx
+npx battle-node-v2 <ip> <port> <password>
+
+# Or install globally
 npm install -g battle-node-v2
-
-# Usage
-battle-rcon <ip> <port> <password>
-
-# Example
-battle-rcon 127.0.0.1 2302 mysecretpassword
+battle-rcon 192.168.1.144 2302 mypassword
 ```
-
-Or run directly from the source:
-
-```bash
-node cli.js <ip> <port> <password>
-```
-
-### Available CLI Commands
-
-Once connected, you can use any standard BattlEye command. Common commands include:
-
-*   `players`: List all players on the server.
-*   `admins`: List all connected RCON admins.
-*   `bans`: List all bans.
-*   `version`: Show the BattlEye server version.
-*   `kick <ID> [Reason]`: Kick a player (e.g., `kick 5 AFK`).
-*   `ban <ID> [Minutes] [Reason]`: Ban a player (0 minutes = permanent).
-*   `addBan <GUID|IP> [Minutes] [Reason]`: Ban an offline player.
-*   `removeBan <BanID>`: Unban a player (ID from `bans` list).
-*   `say <ID> <Message>`: Send a chat message (`-1` for all players).
-*   `loadBans`: Reload bans from file.
-*   `writeBans`: Save bans to file.
-*   `#lock` / `#unlock`: Lock or unlock the server.
-*   `#shutdown`: Shutdown the server.
-*   `exit` / `quit`: Disconnect and close the CLI.
 
 ## Protocol Details
-This library implements the UDP-based BattlEye RCON protocol, including CRC32 checksums, packet sequencing, and multipacket reassembly.
+
+This library implements the full BattlEye RCON protocol v2, including:
+- **Login Handshake**: Secure authentication with password.
+- **Multipart Packets**: Automatically reassembles split responses.
+- **CRC32 Integrity**: Validates all incoming packets using correct Little-Endian checksums.
+- **Sequence Tracking**: Ensures commands are executed in order.
 
 ## License
+
 MIT
+

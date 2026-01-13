@@ -2,18 +2,28 @@
   "name": "battle-node-v2",
   "version": "2.0.0",
   "description": "Modern Promise-based BattlEye RCON Client for Node.js",
-  "main": "./lib/index.js",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
   "files": [
-    "lib",
-    "cli.js",
+    "dist",
     "LICENSE.txt",
     "README.md"
   ],
   "bin": {
-    "battle-rcon": "./cli.js"
+    "battle-rcon": "./dist/cli.js"
   },
   "scripts": {
-    "start": "node cli.js",
+    "build": "tsc",
+    "prepublishOnly": "npm run build",
+    "start": "node dist/cli.js",
+    "dev": "node --loader ts-node/esm src/cli.ts",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
@@ -32,10 +42,13 @@
   ],
   "author": "mazix <mazix@bk.ru>",
   "license": "MIT",
-  "dependencies": {
-    "buffer-crc32": "^0.2.1"
-  },
   "engines": {
-    "node": ">=14.0.0"
+    "node": ">=18.0.0"
+  },
+  "devDependencies": {
+    "@types/events": "^3.0.3",
+    "@types/node": "^25.0.8",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3"
   }
 }

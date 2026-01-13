@@ -1,9 +1,30 @@
-# NPM Ignore
-# Files that should not be included in the published package
-# (Even though "files" in package.json handles this, it's good practice)
+# Source code
+src/
+tsconfig.json
+.vscode/
+.idea/
 
-example.js
-PLAN.md
-bans.txt
+# Tests & Examples
+test/
+examples/
+coverage/
+
+# Documentation & Config
 .gitignore
+.npmignore
+.gitattributes
+.github/
+PLAN.md
+
+# Logs & Runtime
+*.log
+bans.txt
+players.txt
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Git
 .git/
+
