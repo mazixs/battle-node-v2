@@ -17,7 +17,7 @@
     "README.md"
   ],
   "bin": {
-    "battle-rcon": "./dist/cli.js"
+    "battle-rcon": "dist/cli.js"
   },
   "scripts": {
     "build": "tsc",
@@ -28,7 +28,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/mazixs/battle-node-v2.git"
+    "url": "git+https://github.com/mazixs/battle-node-v2.git"
   },
   "keywords": [
     "battleye",
