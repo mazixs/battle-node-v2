@@ -1,6 +1,6 @@
-# Battle Node v2.1
+# Battle Node v2.2
 
-Battle Node v2.1 is a modern, **TypeScript-based** Node.js client for the BattlEye RCON protocol.
+Battle Node v2.2 is a modern, **TypeScript-based** Node.js client for the BattlEye RCON protocol.
 It supports standard BattlEye commands for games like ARMA 2, ARMA 3, DayZ, and others.
 
 > **Target:** Node.js 22+ (Native ESM, Built-in Test Runner, Native Arg Parsing)
