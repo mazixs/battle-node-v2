@@ -3,14 +3,21 @@
 Battle Node v2.1 is a modern, **TypeScript-based** Node.js client for the BattlEye RCON protocol.
 It supports standard BattlEye commands for games like ARMA 2, ARMA 3, DayZ, and others.
 
+> **Target:** Node.js 22+ (Native ESM, Built-in Test Runner, Native Arg Parsing)
+
 ## Features
 
 *   **TypeScript**: Written in strict TypeScript (ES2023) with full type definitions.
+*   **Zero Dependencies**: Uses only native Node.js APIs (`net`, `dgram`, `events`, `util`).
+*   **Native Scheduler**: Built-in task runner for automated commands (Anti-overlap, Human-readable intervals).
 *   **Reliable UDP**: Automatic retries with exponential backoff, command queuing, and multipart packet reassembly.
-*   **Multi-Transport**: Supports **UDP** (standard) and **TCP** (proxy) transports.
+*   **Multi-Transport**: Supports **UDP** (standard) and **TCP** (proxy) with correct stream framing.
 *   **Observability**: Built-in statistics (`getStats()`) and structured logging.
-*   **Robust Protocol**: Handles sequencing, CRC32 validation (Little-Endian), and keep-alive automatically.
-*   **Zero Dependencies**: Lightweight and efficient.
+
+## Documentation
+
+*   [📚 API Reference](./docs/API.md) - Methods, Configuration, and Events.
+*   [🏗 Architecture & Internals](./docs/Architecture.md) - Design principles and transport logic.
 
 ## Installation
 
@@ -39,16 +46,18 @@ try {
   await client.login();
   console.log('Logged in!');
   
-  const players = await client.sendCommand('players');
+  // Use typed helper methods
+  const players = await client.getPlayers();
   console.log('Players:', players);
   
-  // Use typed helper methods
-  const version = await client.getVersion();
-  console.log('Server Version:', version);
+  // Scheduler Example: Auto-save every 10 minutes
+  client.scheduler.addTask('auto_save', '10m', async () => {
+      console.log('Saving server...');
+      await client.sendCommand('#save');
+  });
 
 } catch (error) {
   console.error('RCON Error:', error);
-} finally {
   client.disconnect();
 }
 ```
@@ -69,7 +78,6 @@ const config: BattleNodeConfig = {
   timeout: 5000,          // Connection timeout
   maxRetries: 3,         // Retry commands up to 3 times
   retryDelay: 1000,      // Exponential backoff base delay
-  keepAliveInterval: 30000,
   
   // Custom Logging
   logLevel: 'info',
@@ -89,11 +97,10 @@ async function main() {
     await client.login();
     console.log('RCON Connected');
 
-    // Stats Monitoring
-    setInterval(() => {
-        const stats = client.getStats();
-        console.log(`Latency: ${stats.averageLatency}ms | Lost: ${stats.packetsLost}`);
-    }, 60000);
+    // Auto-Announce every 2 hours
+    client.scheduler.addTask('announcer', '2h', async () => {
+        await client.say('Join our Discord!');
+    });
 
   } catch (err) {
     console.error('Failed to connect:', err);
@@ -103,50 +110,25 @@ async function main() {
 
 // Graceful Shutdown
 process.on('SIGINT', () => {
-    client.disconnect();
+    client.disconnect(); // Stops scheduler and closes socket
     process.exit(0);
 });
 
 main();
 ```
 
-## Configuration
-
-The `BattleNodeConfig` interface:
-
-| Property | Type | Default | Description |
-|----------|------|---------|-------------|
-| `ip` | `string` | **Required** | Game server IP address |
-| `port` | `number` | **Required** | RCON port (often Game Port + 1) |
-| `rconPassword` | `string` | **Required** | BattlEye RCON password |
-| `transportType` | `'udp' \| 'tcp'` | `'udp'` | Use UDP for direct connection |
-| `timeout` | `number` | `5000` | Socket/Login timeout (ms) |
-| `maxRetries` | `number` | `3` | Max retries for failed commands |
-| `retryDelay` | `number` | `1000` | Base delay for retries (ms) |
-| `keepAliveInterval` | `number` | `15000` | Keep-alive packet interval (ms) |
-| `logLevel` | `'debug'\|'info'\|'warn'\|'error'` | `'info'` | Minimum log level |
-| `logger` | `function` | `undefined` | Custom logger callback |
-
 ## CLI Tool
 
-The package includes a built-in CLI for quick server management.
+The package includes a built-in CLI for quick server management using native argument parsing.
 
 ```bash
 # Run directly with npx
-npx battle-node-v2 <ip> <port> <password>
+npx battle-node-v2 -i 127.0.0.1 -p 2302 -P mypassword
 
 # Or install globally
 npm install -g battle-node-v2
-battle-rcon 192.168.1.144 2302 mypassword
+battle-rcon --ip 192.168.1.144 --port 2302 --password mypassword
 ```
-
-## Protocol Details
-
-This library implements the full BattlEye RCON protocol v2, including:
-- **Login Handshake**: Secure authentication with password.
-- **Multipart Packets**: Automatically reassembles split responses.
-- **CRC32 Integrity**: Validates all incoming packets using correct Little-Endian checksums.
-- **Sequence Tracking**: Ensures commands are executed in order.
 
 ## License
 

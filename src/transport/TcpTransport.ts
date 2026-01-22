@@ -1,27 +1,33 @@
 import * as net from 'net';
 import { EventEmitter } from 'events';
 import { ITransport, TransportConfig } from './ITransport.js';
+import { PacketBuffer } from './PacketBuffer.js';
 
 /**
  * TCP Transport implementation.
- * Note: TCP is stream-based. This transport emits chunks as they arrive.
- * Packet assembly/framing must be handled by the Protocol layer.
+ * Handles stream reassembly using PacketBuffer (Brute-force CRC window).
  */
 export class TcpTransport extends EventEmitter implements ITransport {
     private readonly socket: net.Socket;
     private readonly config: TransportConfig;
+    private readonly buffer: PacketBuffer;
     private isConnected = false;
 
     constructor(config: TransportConfig) {
         super();
         this.config = config;
         this.socket = new net.Socket();
+        this.buffer = new PacketBuffer();
         this.setupListeners();
     }
 
     private setupListeners(): void {
         this.socket.on('data', (data: Buffer) => {
-            this.emit('message', data);
+            this.buffer.add(data);
+            const packets = this.buffer.process();
+            for (const packet of packets) {
+                this.emit('message', packet);
+            }
         });
 
         this.socket.on('error', (err: Error) => {

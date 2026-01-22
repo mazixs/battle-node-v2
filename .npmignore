@@ -15,6 +15,7 @@ coverage/
 .gitattributes
 .github/
 PLAN.md
+audit.md
 
 # Logs & Runtime
 *.log

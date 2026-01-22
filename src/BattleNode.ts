@@ -7,6 +7,7 @@ import { PacketParser, PacketParseResult } from './protocol/PacketParser.js';
 import { PacketType, DEFAULTS } from './protocol/Constants.js';
 import { PacketAssembler } from './protocol/PacketAssembler.js';
 import { RconError, RconErrorCode } from './RconError.js';
+import { Scheduler } from './Scheduler.js';
 
 export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 export type Logger = (level: LogLevel, message: string, meta?: unknown) => void;
@@ -63,6 +64,7 @@ export class BattleNode extends EventEmitter {
     private startTime: number = 0;
 
     // Components
+    public readonly scheduler: Scheduler;
     private readonly packetAssembler: PacketAssembler;
     private readonly commandQueue: Array<() => Promise<void>> = [];
     private isProcessingQueue = false;
@@ -93,6 +95,7 @@ export class BattleNode extends EventEmitter {
             ...(config.logger ? { logger: config.logger } : {})
         };
 
+        this.scheduler = new Scheduler();
         this.packetAssembler = new PacketAssembler(this.config.commandTimeout);
 
         if (this.config.transportType === 'tcp') {
@@ -102,6 +105,13 @@ export class BattleNode extends EventEmitter {
         }
 
         this.setupTransport();
+        this.setupScheduler();
+    }
+
+    private setupScheduler(): void {
+        this.scheduler.on('taskError', (taskId, err) => {
+            this.log('error', `Scheduler task '${taskId}' failed`, err);
+        });
     }
 
     private setupTransport(): void {
@@ -264,6 +274,7 @@ export class BattleNode extends EventEmitter {
         
         // 1. Stop timers
         this.stopKeepAlive();
+        this.scheduler.stop();
         
         // 2. Clear pending commands
         for (const [seq, cmd] of this.pendingCommands) {

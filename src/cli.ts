@@ -1,26 +1,52 @@
 #!/usr/bin/env node
 import { BattleNode, BattleNodeConfig } from './index.js';
 import * as readline from 'readline';
+import { parseArgs } from 'node:util';
 
-// Strict argument parsing
-const args = process.argv.slice(2);
+// Native Argument Parsing
+const { values, positionals } = parseArgs({
+    args: process.argv.slice(2),
+    options: {
+        ip: { type: 'string', short: 'i' },
+        port: { type: 'string', short: 'p' },
+        password: { type: 'string', short: 'P' },
+        help: { type: 'boolean', short: 'h' },
+    },
+    allowPositionals: true
+});
 
-if (args.length < 3) {
-    console.log('Usage: battle-rcon <ip> <port> <password>');
-    console.log('Example: battle-rcon 127.0.0.1 2302 mypassword');
-    process.exit(1);
+if (values.help) {
+    console.log(`
+Usage: battle-rcon [options] <ip> <port> <password>
+
+Options:
+  -i, --ip <ip>          Server IP address
+  -p, --port <port>      Server RCON port
+  -P, --password <pwd>   RCON Password
+  -h, --help             Show this help message
+
+Examples:
+  battle-rcon 127.0.0.1 2302 mypassword
+  battle-rcon --ip 127.0.0.1 --port 2302 --password mypassword
+`);
+    process.exit(0);
 }
 
-// Ensure args are defined via checks or defaults (though check above covers it)
-const ip = args[0] ?? '127.0.0.1';
-const portStr = args[1] ?? '2302';
-const password = args[2] ?? '';
+// Support both positional and named arguments
+const ip = values.ip ?? positionals[0] ?? '127.0.0.1';
+const portStr = values.port ?? positionals[1] ?? '2302';
+const password = values.password ?? positionals[2] ?? '';
+
+if (!ip || !portStr || !password) {
+    console.error('Error: Missing required arguments. Use --help for usage.');
+    process.exit(1);
+}
 
 const config: BattleNodeConfig = {
   ip,
   port: parseInt(portStr, 10),
   rconPassword: password,
-  transportType: 'udp',
+  transportType: 'udp', // CLI defaults to UDP as it is the standard
   logLevel: 'info',
   logger: (level, message) => {
     if (level === 'error' || level === 'warn') {
